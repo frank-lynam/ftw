@@ -12,3 +12,5 @@ A thing that turns python files into websites super easy
 - Rest api and web page
 - Command line argument for path to code
 - Open API maybe
+- Threaded tasks that run in the background
+- All endpoints are immediate
