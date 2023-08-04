@@ -49,11 +49,27 @@ if __name__=="__main__":
 
     def do_GET(s):
       s.send_response(200)
-      s.send_header("Content-type", "text/html")
-      s.end_headers()
-      s.ww("<html><head><title>Frank's Terrible WebUI</title></head>")
-      s.ww(f"<body><p>Yo.</p><p>The files are:<br/>{files}</p>")
-      s.ww(f"<p>The apps are:<br/>{json.dumps(apps, default=lambda x : '', indent=2)}</p></body></html>")
+
+      if s.path=="/":      
+        s.send_header("Content-type", "text/html")
+        s.end_headers()
+        s.ww("<html><head><title>Frank's Terrible WebUI</title></head><body>")
+        s.ww(f"<p>Yo.</p><p>The files are:<br/>{files}</p>")
+        s.ww(f"<p>The apps are:<br/>{json.dumps(apps, default=lambda x : '', indent=2)}</p>")
+        s.ww(f"<p>path is {s.path}</p>")
+        s.ww("</body></html>")
+      elif s.path=="/ftw/apps":
+        s.send_header("Content-type", "application/json")
+        s.end_headers()
+        s.ww(json.dumps(apps, default=lambda x : '', indent=2))
+      else:
+        path = s.path.split("/")[1:]
+        if (path[0]=="do" 
+            and path[1] in apps 
+            and path[2] in apps[path[1]]):
+          s.send_header("Content-type", "application/json")
+          s.end_headers()
+          s.ww(json.dumps(apps[path[1]][path[2]]["f"](), indent=2))
 
   print(f"Frank's Terrible WebUI found {len(apps.keys())} apps.\nPress Ctrl+C to exit.")
   http.server.HTTPServer(('', 8000), ftws).serve_forever()

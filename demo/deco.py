@@ -1,8 +1,8 @@
 from ftw import ftw
 
-def hidden_method(x, y):
+def hidden(x, y):
   return x+y
 
 @ftw
-def visible_method(x, y):
+def visible(x, y):
   return hidden_method(x, y)
