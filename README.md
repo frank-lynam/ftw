@@ -14,3 +14,11 @@ A thing that turns python files into websites super easy
 - Open API maybe
 - Threaded tasks that run in the background
 - All endpoints are immediate
+
+# To do
+
+Allow custom index
+Pass files a file like in memory
+Add q endpoint
+Break header stuff into new method
+Store last used parameters in local storage
