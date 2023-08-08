@@ -6,39 +6,50 @@ class ftws(http.server.BaseHTTPRequestHandler):
   def index(self):
     return ""
 
-  def ww(s, txt):
+  def ww(s, txt, code=200, content="application/json"):
+    s.send_response(code)
+    s.send_header("Content-type", content)
+    s.end_headers()
     s.wfile.write(bytes(txt, "utf-8"))
 
   def do_GET(s):
     if s.path=="/":      
-      s.send_response(200)
-      s.send_header("Content-type", "text/html")
-      s.end_headers()
-      s.ww("<html><head><title>Frank's Terrible WebUI</title></head><body>")
-      s.ww(f"<p>Yo.</p><p>The files are:<br/>{files}</p>")
-      s.ww(f"<p>The apps are:<br/>{json.dumps(apps, default=lambda x : '', indent=2)}</p>")
-      s.ww(f"<p>path is {s.path}</p>")
-      s.ww("</body></html>")
-    elif s.path=="/ftw/apps":
-      s.send_response(200)
-      s.send_header("Content-type", "application/json")
-      s.end_headers()
+      s.ww("""
+<html><head><title>Frank's Terrible WebUI</title>
+  <style>
+    body { background: #021; color: #cde; font-size: 3em; }
+    .bbox { display: flex; gap: .75em; }
+    .btn { padding: .75em 1em; border: 2px solid #cde; }
+    .btn:hover,focus { filter: brightness(1.5); }
+  </style>
+  <script>
+    fetch("/ftw/api").then(r=>r.json())
+      .then(r=>document.getElementById("apps").innerHTML=Object.keys(r).map(x=>`<div class="btn">${x}</div>`).join("\\n"))
+  </script>
+</head><body>
+  <div>Yo.</div>
+  <div id="apps" class="bbox"></div>
+</body></html>
+""", content="text/html")
+    elif s.path=="/ftw/api":
       s.ww(json.dumps(apps, default=lambda x : '', indent=2))
     else:
       path = s.path.split("/")[1:]
       if (path[0]=="do" 
           and path[1] in apps 
           and path[2] in apps[path[1]]):
-        s.send_response(200)
-        s.send_header("Content-type", "application/json")
-        s.end_headers()
         s.ww(json.dumps(apps[path[1]][path[2]]["f"](), indent=2))
       else:
-        s.send_response(418)
-        s.send_header("Content-type", "text/plain")
-        s.end_headers()
-        s.ww("I'm a little teapot\n")
-      
+        s.ww("I'm a little teapot\n", code=418, content="text/plain")
+
+  def do_POST(s):
+    path = s.path.split("/")[1:]
+    if (path[0]=="do" 
+        and path[1] in apps 
+        and path[2] in apps[path[1]]):
+      s.ww(json.dumps(apps[path[1]][path[2]]["f"](), indent=2))
+    else:
+      s.ww("I'm a little teapot\n", code=418, content="text/plain")
 
 def ftw(f):
   def w(*args, **kwargs):
