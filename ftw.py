@@ -17,19 +17,36 @@ class ftws(http.server.BaseHTTPRequestHandler):
       s.ww("""
 <html><head><title>Frank's Terrible WebUI</title>
   <style>
-    body { background: #021; color: #cde; font-size: 3em; }
-    .bbox { display: flex; gap: .75em; }
-    .btn { padding: .75em 1em; border: 2px solid #cde; }
-    .btn:hover,focus { filter: brightness(1.5); }
+    body { background: #000201; color: #cde; font-size: 3em; }
+    .bbox { display: flex; gap: .75em; margin: 0.5em;
+      justify-content: center; flex-flow: column wrap; 
+      min-height: 85vh; align-items: center; 
+      transition: ease-in-out .2s; } 
+    .btn { padding: .75em 1em; border: 2px solid #cde; 
+      user-select: none; text-align: center; } 
+    .btn:hover,focus { filter: brightness(1.75); }
   </style>
-  <script>
-    fetch("/ftw/api").then(r=>r.json())
-      .then(r=>document.getElementById("apps").innerHTML=Object.keys(r).map(x=>`<div class="btn">${x}</div>`).join("\\n"))
-  </script>
 </head><body>
-  <div>Yo.</div>
   <div id="apps" class="bbox"></div>
-</body></html>
+  <div class="btn" style="position: fixed; bottom: .5em; left: .5em; background: #222;" onclick="state.pop(); swipe(true);">Back</div>
+</body>
+<script>
+  let apps = document.getElementById("apps");
+  let state = [], api={};
+  let colory = s=>`hsl(${s.split('').map(x=>x.charCodeAt(0)).reduce((a,b)=>2*a+b)%360},80%,20%)`;
+  let pop = ()=>apps.innerHTML=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${x}</div>`).join("\\n")
+  let goto = (b)=>{ state.push(b); swipe(); }
+  let swipe = (back=false)=>{
+    apps.style.transform=`translate(${back?0:"-100vw"}, ${back?"-100vh":0})`;
+    setTimeout(()=>{apps.innerHTML="";
+      apps.style.transform=`translate(${back?"-100vw":0}, ${back?0:"-100vh"})`;
+      setTimeout(()=>{pop();
+        apps.style.transform="translate(0, 0)";
+      }, 200);}, 200);}
+  fetch("/ftw/api").then(r=>r.json())
+    .then(r=>{api=r; swipe();})
+</script>
+</html>
 """, content="text/html")
     elif s.path=="/ftw/api":
       s.ww(json.dumps(apps, default=lambda x : '', indent=2))

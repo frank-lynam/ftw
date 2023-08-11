@@ -1,5 +1,14 @@
 # Frank's Terrible WebUI
-A thing that turns python files into websites super easy
+
+A thing that turns python files into websites super easy. I made it on my phone.
+
+## Use
+
+Just run:
+
+'''bash
+python3 ftw.py demo/
+'''
 
 ## Concept
 
@@ -17,8 +26,9 @@ A thing that turns python files into websites super easy
 
 # To do
 
+Make inputs work
 Allow custom index
-Pass files a file like in memory
+Pass files as a file-like in memory
 Add q endpoint
 Break header stuff into new method
 Store last used parameters in local storage
