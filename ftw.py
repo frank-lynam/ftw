@@ -1,4 +1,4 @@
-import sys, os, http.server, json
+import sys, os, http.server, json, urllib.parse
 
 apps={}
 
@@ -21,10 +21,12 @@ class ftws(http.server.BaseHTTPRequestHandler):
     .bbox { display: flex; gap: .75em; margin: 0.5em;
       justify-content: center; flex-flow: column wrap; 
       min-height: 85vh; align-items: center; 
-      transition: ease-in-out .2s; } 
+      transition: ease-out .2s; } 
     .btn { padding: .75em 1em; border: 2px solid #cde; 
-      user-select: none; text-align: center; } 
-    .btn:hover,focus { filter: brightness(1.75); }
+      user-select: none; text-align: center; 
+      border-radius: 0.2em; transition: ease-in-out .05s;
+      filter: drop-shadow(0.2em 0.2em 0.1em #666); } 
+    .btn:hover,focus { filter: brightness(1.75) drop-shadow(0.1em 0.1em 0.1em #666); transform: translate(0.1em, 0.1em); }
     input { font-size: 1em; width: 5em; }
   </style>
 </head><body>
@@ -64,7 +66,7 @@ class ftws(http.server.BaseHTTPRequestHandler):
           and path[1] in apps 
           and path[2] in apps[path[1]]):
           print(s.path)
-          s.ww(json.dumps(apps[path[1]][path[2]]["f"](**({x:y for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&")]} if s.path[-1]!="?" else {})), indent=2))
+          s.ww(json.dumps(apps[path[1]][path[2]]["f"](**({x:urllib.parse.unquote(y) for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&")]} if s.path[-1]!="?" else {})), indent=2))
       else:
         s.ww("I'm a little teapot\n", code=418, content="text/plain")
 
@@ -80,6 +82,7 @@ class ftws(http.server.BaseHTTPRequestHandler):
 def ftw(low,__get_low=False):
   def omw(f):
     def w(*args, **kwargs):
+      # Put a validator here, then the UI can assume nicely structured responses
       return low if "__get_low" in kwargs else f(*args, **kwargs)
     return w
   return omw

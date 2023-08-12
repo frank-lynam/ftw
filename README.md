@@ -6,9 +6,9 @@ A thing that turns python files into websites super easy. I made it on my phone.
 
 Just run:
 
-'''bash
+```bash
 python3 ftw.py demo/
-'''
+```
 
 ## Concept
 
@@ -20,15 +20,15 @@ python3 ftw.py demo/
 - Handler for file uploads
 - Rest api and web page
 - Command line argument for path to code
-- Open API maybe
+- Open API maybe?
 - Threaded tasks that run in the background
 - All endpoints are immediate
 
 # To do
 
-Make inputs work
-Allow custom index
-Pass files as a file-like in memory
-Add q endpoint
-Break header stuff into new method
-Store last used parameters in local storage
+- Make inputs work
+- Allow custom index
+- Pass files as a file-like in memory
+- Add q endpoint
+- Break header stuff into new method
+- Store last used parameters in local storage
