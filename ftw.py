@@ -38,8 +38,11 @@ class ftws(http.server.BaseHTTPRequestHandler):
   let pop = ()=>{apps.innerHTML="";
     if (state.length>0) {apps.innerHTML+='<div class="btn" style="background: #222; margin-bottom: 1em;" onclick="state.pop(); swipe(true);">Back</div>'}
     if (state.length<2) {apps.innerHTML+=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${entitle(x)}</div>`).join("\\n")}
-    else {apps.innerHTML+=Object.entries(state.reduce((a,b)=>a[b],api).ui).map(a=>`<div><label for="${a[0]}">${entitle(a[0])}: <input id="${a[0]}"${Object.entries(a[1]).map(c=>" "+c[0]+"='"+c[1]+"'").join("")} /></label></div>`).join("\\n")}
+    else if (state.length==2) {apps.innerHTML+=Object.entries(state.reduce((a,b)=>a[b],api).ui).map(a=>`<div><label for="${a[0]}">${entitle(a[0])}: <input id="${a[0]}"${Object.entries(a[1]).map(c=>" "+c[0]+"='"+c[1]+"'").join("")} /></label></div>`).join("\\n")
+    +'<div class="btn" style="background: #253; margin-top: 1em;" onclick="fire()">Go</div>'}
+    else {apps.innerHTML+=`<div style="white-space: pre">${JSON.stringify(state.at(-1),null,2)}</div>`}
   }
+  let fire = ()=>fetch(`/do/${state[0]}/${state[1]}?`+Object.keys(api[state[0]][state[1]].ui).map(x=>x+"="+encodeURIComponent(document.getElementById(x).value)).join("&")).then(r=>r.json()).then(r=>{state.push(r); swipe()})
   let goto = (b)=>{ state.push(b); swipe(); }
   let swipe = (back=false)=>{
     apps.style.transform=`translate(${back?0:"-100vw"}, ${back?"-100vh":0})`;
@@ -56,11 +59,11 @@ class ftws(http.server.BaseHTTPRequestHandler):
     elif s.path=="/ftw/api":
       s.ww(json.dumps(apps, default=lambda x : '', indent=2))
     else:
-      path = s.path.split("/")[1:]
+      path = s.path.split("?")[0].split("/")[1:]
       if (path[0]=="do" 
           and path[1] in apps 
           and path[2] in apps[path[1]]):
-        s.ww(json.dumps(apps[path[1]][path[2]]["f"](), indent=2))
+          s.ww(json.dumps(apps[path[1]][path[2]]["f"](**{x:y for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&")]}), indent=2))
       else:
         s.ww("I'm a little teapot\n", code=418, content="text/plain")
 
