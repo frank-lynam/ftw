@@ -28,13 +28,15 @@ class ftws(http.server.BaseHTTPRequestHandler):
   </style>
 </head><body>
   <div id="apps" class="bbox"></div>
-  <div class="btn" style="position: fixed; bottom: .5em; left: .5em; background: #222;" onclick="state.pop(); swipe(true);">Back</div>
 </body>
 <script>
   let apps = document.getElementById("apps");
+  let entitle = (t)=>` ${t}`.replaceAll("_"," ").split("").map(x=>x==x.toLowerCase()?x:" "+x).reduce((a,b)=>a.at(-1)==" "?a+b.toUpperCase():a+b).replaceAll("  "," ").trim()
   let state = [], api={};
   let colory = s=>`hsl(${s.split('').map(x=>x.charCodeAt(0)).reduce((a,b)=>2*a+b)%360},80%,20%)`;
-  let pop = ()=>apps.innerHTML=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${x}</div>`).join("\\n")
+  let pop = ()=>{
+    if (state.length==0 || typeof state[0]==='string') {apps.innerHTML=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${entitle(x)}</div>`).join("\\n")}
+    if (state.length>0) {apps.innerHTML+='<div class="btn" style="background: #222;" onclick="state.pop(); swipe(true);">Back</div>'}}
   let goto = (b)=>{ state.push(b); swipe(); }
   let swipe = (back=false)=>{
     apps.style.transform=`translate(${back?0:"-100vw"}, ${back?"-100vh":0})`;
