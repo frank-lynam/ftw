@@ -25,6 +25,7 @@ class ftws(http.server.BaseHTTPRequestHandler):
     .btn { padding: .75em 1em; border: 2px solid #cde; 
       user-select: none; text-align: center; } 
     .btn:hover,focus { filter: brightness(1.75); }
+    input { font-size: 1em; width: 5em; }
   </style>
 </head><body>
   <div id="apps" class="bbox"></div>
@@ -34,9 +35,11 @@ class ftws(http.server.BaseHTTPRequestHandler):
   let entitle = (t)=>` ${t}`.replaceAll("_"," ").split("").map(x=>x==x.toLowerCase()?x:" "+x).reduce((a,b)=>a.at(-1)==" "?a+b.toUpperCase():a+b).replaceAll("  "," ").trim()
   let state = [], api={};
   let colory = s=>`hsl(${s.split('').map(x=>x.charCodeAt(0)).reduce((a,b)=>2*a+b)%360},80%,20%)`;
-  let pop = ()=>{
-    if (state.length==0 || typeof state[0]==='string') {apps.innerHTML=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${entitle(x)}</div>`).join("\\n")}
-    if (state.length>0) {apps.innerHTML+='<div class="btn" style="background: #222;" onclick="state.pop(); swipe(true);">Back</div>'}}
+  let pop = ()=>{apps.innerHTML="";
+    if (state.length>0) {apps.innerHTML+='<div class="btn" style="background: #222; margin-bottom: 1em;" onclick="state.pop(); swipe(true);">Back</div>'}
+    if (state.length<2) {apps.innerHTML+=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${entitle(x)}</div>`).join("\\n")}
+    else {apps.innerHTML+=Object.entries(state.reduce((a,b)=>a[b],api).ui).map(a=>`<div><label for="${a[0]}">${entitle(a[0])}: <input id="${a[0]}"${Object.entries(a[1]).map(c=>" "+c[0]+"='"+c[1]+"'").join("")} /></label></div>`).join("\\n")}
+  }
   let goto = (b)=>{ state.push(b); swipe(); }
   let swipe = (back=false)=>{
     apps.style.transform=`translate(${back?0:"-100vw"}, ${back?"-100vh":0})`;
@@ -110,6 +113,8 @@ def ftfy(p="."):
         d = [] if d==None else d
         x["kwargs"] = dict(zip(x["args"][-len(d):],d))
         x["args"] = x["args"][:-len(d)]
+        x["ui"] = {a:{} for a in x["args"]}
+        x["ui"].update({a:{"value":b} for a,b in x["kwargs"].items()})
         apps[app][meth] = x
   start(apps)
 
