@@ -63,7 +63,8 @@ class ftws(http.server.BaseHTTPRequestHandler):
       if (path[0]=="do" 
           and path[1] in apps 
           and path[2] in apps[path[1]]):
-          s.ww(json.dumps(apps[path[1]][path[2]]["f"](**{x:y for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&")]}), indent=2))
+          print(s.path)
+          s.ww(json.dumps(apps[path[1]][path[2]]["f"](**({x:y for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&")]} if s.path[-1]!="?" else {})), indent=2))
       else:
         s.ww("I'm a little teapot\n", code=418, content="text/plain")
 
@@ -76,10 +77,12 @@ class ftws(http.server.BaseHTTPRequestHandler):
     else:
       s.ww("I'm a little teapot\n", code=418, content="text/plain")
 
-def ftw(f):
-  def w(*args, **kwargs):
-    return f(*args, **kwargs)
-  return w
+def ftw(low,__get_low=False):
+  def omw(f):
+    def w(*args, **kwargs):
+      return low if "__get_low" in kwargs else f(*args, **kwargs)
+    return w
+  return omw
 
 def ftfy(p="."):
   p += "" if p.endswith("/") else "/"
@@ -99,7 +102,7 @@ def ftfy(p="."):
     if "@noftw" in t.lower():
       return None
     if "@ftw" in t.lower():
-      return {x.split("def ")[1].split("(")[0].strip():[] for x in t.split("@ftw")[1:]}
+      return {x.split("def ")[1].split("(")[0].strip():[None] for x in t.split("@ftw")[1:]}
     return {x.split("(")[0].strip():[] for x in t.split("def ")[1:]}
 
   global apps
@@ -109,8 +112,8 @@ def ftfy(p="."):
   for app in apps.keys():
     mod=__import__(app)
     for meth in apps[app].keys():
+      x = {"f": getattr(mod, meth)}
       if len(apps[app][meth])==0:
-        x = {"f": getattr(mod, meth)}
         x["args"] = x["f"].__code__.co_varnames
         d = x["f"].__defaults__
         d = [] if d==None else d
@@ -118,7 +121,10 @@ def ftfy(p="."):
         x["args"] = x["args"][:-len(d)]
         x["ui"] = {a:{} for a in x["args"]}
         x["ui"].update({a:{"value":b} for a,b in x["kwargs"].items()})
-        apps[app][meth] = x
+      else:
+        x["ui"] = x["f"](__get_low=True)
+      apps[app][meth] = x
+      
   start(apps)
 
 def start(appspec={}):
