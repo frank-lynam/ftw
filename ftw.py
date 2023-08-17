@@ -37,17 +37,42 @@ class ftws(http.server.BaseHTTPRequestHandler):
 </body>
 <script>
   let apps = document.getElementById("apps");
-  let entitle = (t)=>` ${t}`.replaceAll("_"," ").split("").map(x=>x==x.toLowerCase()?x:" "+x).reduce((a,b)=>a.at(-1)==" "?a+b.toUpperCase():a+b).replaceAll("  "," ").trim()
+  let entitle = (t)=>` ${t}`.replaceAll("_"," ").split("")
+    .map(x=>x==x.toLowerCase()?x:" "+x)
+    .reduce((a,b)=>a.at(-1)==" "?a+b.toUpperCase():a+b)
+    .replaceAll("  "," ").trim()
   let state = [], api={};
-  let colory = s=>`hsl(${s.split('').map(x=>x.charCodeAt(0)).reduce((a,b)=>2*a+b)%360},80%,20%)`;
+  let colory = s=>`hsl(${s.split('').map(x=>x.charCodeAt(0))
+    .reduce((a,b)=>2*a+b)%360},80%,20%)`;
   let pop = ()=>{apps.innerHTML="";
-    if (state.length>0) {apps.innerHTML+='<div class="btn" style="background: #222; margin-bottom: 1em;" onclick="state.pop(); swipe(true);">Back</div>'}
-    if (state.length<2) {apps.innerHTML+=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${entitle(x)}</div>`).join("\\n")}
-    else if (state.length==2) {apps.innerHTML+=Object.entries(state.reduce((a,b)=>a[b],api).ui).map(a=>`<div><label for="${a[0]}">${entitle(a[0])}: <input id="${a[0]}"${Object.entries(a[1]).map(c=>" "+c[0]+"='"+c[1]+"'").join("")} /></label></div>`).join("\\n")
-    +'<div class="btn" style="background: #253; margin-top: 1em;" onclick="fire()">Go</div>'}
-    else {apps.innerHTML+=state.at(-1).map(x=>"<" + ("_tag" in x ? x._tag : "div") + " " + Object.entries(x).filter(y=>!y[0].startsWith("_")).map(y=>y[0]+'="'+y[1]+'"').join(" ") + ">" + ("_text" in x ? x._text : "") + "</" + ("_tag" in x ? x._tag : "div") + ">").join("\\n")}
+    if (state.length>0) {apps.innerHTML+='<div class="btn" '
+      + 'style="background: #222; margin-bottom: 1em;" '
+      + 'onclick="state.pop(); swipe(true);">Back</div>'}
+    if (state.length<2) {apps.innerHTML+=
+      Object.keys(state.reduce((a,b)=>a[b],api))
+      .map(x=>`<div onclick="goto('${x}')" class="btn" `
+      + `style="background: ${colory(x)}">${entitle(x)}`
+      + `</div>`).join("\\n")}
+    else if (state.length==2) {apps.innerHTML+=
+      Object.entries(state.reduce((a,b)=>a[b],api).ui)
+      .map(a=>`<div><label for="${a[0]}">${entitle(a[0])}: `
+      + `<input id="${a[0]}"${Object.entries(a[1])
+        .map(c=>" "+c[0]+"='"+c[1]+"'").join("")} />`
+      + `</label></div>`).join("\\n")
+      + '<div class="btn" style="background: #253; '
+      + 'margin-top: 1em;" onclick="fire()">Go</div>'}
+    else {apps.innerHTML+=state.at(-1)
+      .map(x=>"<" + ("_tag" in x ? x._tag : "div") + " "
+        + Object.entries(x).filter(y=>!y[0].startsWith("_"))
+          .map(y=>y[0]+'="'+y[1]+'"').join(" ") + ">"
+        + ("_text" in x ? x._text : "") + "</" 
+        + ("_tag" in x ? x._tag : "div") + ">").join("\\n")}
   }
-  let fire = ()=>fetch(`/do/${state[0]}/${state[1]}?ftw=true&`+Object.keys(api[state[0]][state[1]].ui).map(x=>x+"="+encodeURIComponent(document.getElementById(x).value)).join("&")).then(r=>r.json()).then(r=>{state.push(r); swipe()})
+  let fire = ()=>fetch(`/do/${state[0]}/${state[1]}?ftw=true&`
+    + Object.keys(api[state[0]][state[1]].ui)
+      .map(x=>x+"="+encodeURIComponent(document
+        .getElementById(x).value)).join("&"))
+    .then(r=>r.json()).then(r=>{state.push(r); swipe()})
   let goto = (b)=>{ state.push(b); swipe(); }
   let swipe = (back=false)=>{
     apps.style.transform=`translate(${back?0:"-100vw"}, ${back?"-100vh":0})`;
@@ -64,30 +89,42 @@ class ftws(http.server.BaseHTTPRequestHandler):
     elif s.path=="/ftw/api":
       s.ww(json.dumps(apps, default=lambda x : '', indent=2))
     elif s.path=="/favicon.svg":
-      s.ww('<svg xmlns="http://www.w3.org/2000/svg"><polygon points="30,30 60,30 35,40 50,40 35,50 30,80 45,80 42,55 35,50 55,50 47,55 45,80 60,80 55,40 62,70 65,50 67,70 75,40 70,80 65,75 60,80 30,80" /></svg>',content="image/svg+xml")
+      s.ww('<svg xmlns="http://www.w3.org/2000/svg"><polygon '
+        + 'points="30,30 60,30 35,40 50,40 35,50 30,80 45,80 '
+        + '42,55 35,50 55,50 47,55 45,80 60,80 55,40 62,70 '
+        + '65,50 67,70 75,40 70,80 65,75 60,80 30,80" />'
+        + '</svg>', content="image/svg+xml")
     else:
       path = s.path.split("?")[0].split("/")[1:]
       print(s.path)
       if (path[0]=="do" 
           and path[1] in apps 
           and path[2] in apps[path[1]]):
-          r=apps[path[1]][path[2]]["f"](**({x:urllib.parse.unquote(y) for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&") if z != "ftw=true" and z !=""]} if s.path[-1]!="?" else {}))
+          r=apps[path[1]][path[2]]["f"](**(
+            {x:urllib.parse.unquote(y) for x,y in 
+             [z.split("=") for z in 
+                s.path.split("?")[-1].split("&") 
+                if z != "ftw=true" and z !=""]} 
+            if s.path[-1]!="?" else {}))
           if ("ftw=true" in s.path.lower() 
               and (not isinstance(r, list) 
               or any([not isinstance(x, dict) for x in r]))):
             r = [{"style":"white-space:pre", "_text":r}]
           s.ww(json.dumps(r, indent=2))
       else:
-        s.ww("I'm a little teapot\n", code=418, content="text/plain")
+        s.ww("I'm a little teapot\n", code=418, 
+             content="text/plain")
 
   def do_POST(s):
     path = s.path.split("/")[1:]
     if (path[0]=="do" 
         and path[1] in apps 
         and path[2] in apps[path[1]]):
-      s.ww(json.dumps(apps[path[1]][path[2]]["f"](), indent=2))
+      s.ww(json.dumps(apps[path[1]][path[2]]["f"](), 
+                      indent=2))
     else:
-      s.ww("I'm a little teapot\n", code=418, content="text/plain")
+      s.ww("I'm a little teapot\n", code=418, 
+           content="text/plain")
 
 def ftw(low,__get_low=False):
   def omw(f):
@@ -116,8 +153,10 @@ def ftfy(p="."):
     if "@noftw" in t.lower():
       return None
     if "@ftw" in t.lower():
-      return {x.split("def ")[1].split("(")[0].strip():[None] for x in t.split("@ftw")[1:]}
-    return {x.split("(")[0].strip():[] for x in t.split("def ")[1:]}
+      return {x.split("def ")[1].split("(")[0].strip():[None] 
+              for x in t.split("@ftw")[1:]}
+    return {x.split("(")[0].strip():[] 
+            for x in t.split("def ")[1:]}
 
   global apps
   apps = {f[:-3]:methods(f) for f in files}
@@ -134,7 +173,8 @@ def ftfy(p="."):
         x["kwargs"] = dict(zip(x["args"][-len(d):],d))
         x["args"] = x["args"][:-len(d)]
         x["ui"] = {a:{} for a in x["args"]}
-        x["ui"].update({a:{"value":b} for a,b in x["kwargs"].items()})
+        x["ui"].update({a:{"value":b} 
+                        for a,b in x["kwargs"].items()})
       else:
         x["ui"] = x["f"](__get_low=True)
       apps[app][meth] = x
@@ -143,7 +183,8 @@ def ftfy(p="."):
 
 def start(appspec={}):
   apps=appspec
-  print(f"Frank's Terrible WebUI found {len(apps.keys())} apps.\nPress Ctrl+C to exit.")
+  print(f"Frank's Terrible WebUI found {len(apps.keys())} "
+    + "apps.\nPress Ctrl+C to exit.")
   http.server.HTTPServer(('', 8000), ftws).serve_forever()
 
 if __name__=="__main__":
