@@ -16,6 +16,7 @@ class ftws(http.server.BaseHTTPRequestHandler):
     if s.path=="/":      
       s.ww("""
 <html><head><title>Frank's Terrible WebUI</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style>
     body { background: #000201; color: #cde; font-size: 3em; }
     .bbox { display: flex; gap: .75em; margin: 0.5em;
@@ -26,7 +27,9 @@ class ftws(http.server.BaseHTTPRequestHandler):
       user-select: none; text-align: center; 
       border-radius: 0.2em; transition: ease-in-out .05s;
       filter: drop-shadow(0.2em 0.2em 0.1em #666); } 
-    .btn:hover,focus { filter: brightness(1.75) drop-shadow(0.1em 0.1em 0.1em #666); transform: translate(0.1em, 0.1em); }
+    .btn:hover,focus { filter: brightness(1.75) 
+      drop-shadow(0.1em 0.1em 0.1em #666); 
+      transform: translate(0.1em, 0.1em); }
     input { font-size: 1em; width: 5em; }
   </style>
 </head><body>
@@ -42,9 +45,9 @@ class ftws(http.server.BaseHTTPRequestHandler):
     if (state.length<2) {apps.innerHTML+=Object.keys(state.reduce((a,b)=>a[b],api)).map(x=>`<div onclick="goto('${x}')" class="btn" style="background: ${colory(x)}">${entitle(x)}</div>`).join("\\n")}
     else if (state.length==2) {apps.innerHTML+=Object.entries(state.reduce((a,b)=>a[b],api).ui).map(a=>`<div><label for="${a[0]}">${entitle(a[0])}: <input id="${a[0]}"${Object.entries(a[1]).map(c=>" "+c[0]+"='"+c[1]+"'").join("")} /></label></div>`).join("\\n")
     +'<div class="btn" style="background: #253; margin-top: 1em;" onclick="fire()">Go</div>'}
-    else {apps.innerHTML+=`<div style="white-space: pre">${JSON.stringify(state.at(-1),null,2)}</div>`}
+    else {apps.innerHTML+=state.at(-1).map(x=>"<" + ("_tag" in x ? x._tag : "div") + " " + Object.entries(x).filter(y=>!y[0].startsWith("_")).map(y=>y[0]+'="'+y[1]+'"').join(" ") + ">" + ("_text" in x ? x._text : "") + "</" + ("_tag" in x ? x._tag : "div") + ">").join("\\n")}
   }
-  let fire = ()=>fetch(`/do/${state[0]}/${state[1]}?`+Object.keys(api[state[0]][state[1]].ui).map(x=>x+"="+encodeURIComponent(document.getElementById(x).value)).join("&")).then(r=>r.json()).then(r=>{state.push(r); swipe()})
+  let fire = ()=>fetch(`/do/${state[0]}/${state[1]}?ftw=true&`+Object.keys(api[state[0]][state[1]].ui).map(x=>x+"="+encodeURIComponent(document.getElementById(x).value)).join("&")).then(r=>r.json()).then(r=>{state.push(r); swipe()})
   let goto = (b)=>{ state.push(b); swipe(); }
   let swipe = (back=false)=>{
     apps.style.transform=`translate(${back?0:"-100vw"}, ${back?"-100vh":0})`;
@@ -60,13 +63,20 @@ class ftws(http.server.BaseHTTPRequestHandler):
 """, content="text/html")
     elif s.path=="/ftw/api":
       s.ww(json.dumps(apps, default=lambda x : '', indent=2))
+    elif s.path=="/favicon.svg":
+      s.ww('<svg xmlns="http://www.w3.org/2000/svg"><polygon points="30,30 60,30 35,40 50,40 35,50 30,80 45,80 42,55 35,50 55,50 47,55 45,80 60,80 55,40 62,70 65,50 67,70 75,40 70,80 65,75 60,80 30,80" /></svg>',content="image/svg+xml")
     else:
       path = s.path.split("?")[0].split("/")[1:]
+      print(s.path)
       if (path[0]=="do" 
           and path[1] in apps 
           and path[2] in apps[path[1]]):
-          print(s.path)
-          s.ww(json.dumps(apps[path[1]][path[2]]["f"](**({x:urllib.parse.unquote(y) for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&")]} if s.path[-1]!="?" else {})), indent=2))
+          r=apps[path[1]][path[2]]["f"](**({x:urllib.parse.unquote(y) for x,y in [z.split("=") for z in s.path.split("?")[-1].split("&") if z != "ftw=true" and z !=""]} if s.path[-1]!="?" else {}))
+          if ("ftw=true" in s.path.lower() 
+              and (not isinstance(r, list) 
+              or any([not isinstance(x, dict) for x in r]))):
+            r = [{"style":"white-space:pre", "_text":r}]
+          s.ww(json.dumps(r, indent=2))
       else:
         s.ww("I'm a little teapot\n", code=418, content="text/plain")
 
@@ -82,8 +92,9 @@ class ftws(http.server.BaseHTTPRequestHandler):
 def ftw(low,__get_low=False):
   def omw(f):
     def w(*args, **kwargs):
-      # Put a validator here, then the UI can assume nicely structured responses
-      return low if "__get_low" in kwargs else f(*args, **kwargs)
+      if "__get_low" in kwargs:
+        return low
+      return f(*args, **kwargs)
     return w
   return omw
 

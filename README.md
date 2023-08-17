@@ -24,7 +24,7 @@ python3 ftw.py demo/
 - Threaded tasks that run in the background
 - All endpoints are immediate
 
-# To do
+## To do
 
 - Make inputs work
 - Allow custom index
