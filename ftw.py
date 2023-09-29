@@ -147,7 +147,8 @@ class ftws(http.server.BaseHTTPRequestHandler):
     if (path[0]=="do" 
         and path[1] in apps 
         and path[2] in apps[path[1]]):
-      s.ww(json.dumps(str(s.rfile.read(int(s.headers.get("content-length")))), indent=2))
+      payload = json.loads(str(s.rfile.read(int(s.headers.get("content-length"))))) if s.headers.get("content-length") else {}
+      s.ww(json.dumps(do(apps[path[1]][path[2]]["f"], payload), indent=2))
     else:
       s.ww("I'm a little teapot\n", code=418, 
            content="text/plain")
@@ -206,7 +207,10 @@ def ftfy(p="."):
         x["ui"] = x["f"](__get_low=True)
       apps[app][meth] = x
       
-  start(apps)
+  try:
+    start(apps)
+  except KeyboardInterrupt:
+    print("\rBuh-bye!")
 
 def do(f, kwargs):
   r = f(**{k:v for k,v in kwargs.items() 
