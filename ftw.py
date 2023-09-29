@@ -18,11 +18,14 @@ class ftws(http.server.BaseHTTPRequestHandler):
 <html><head><title>Frank's Terrible WebUI</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style>
-    body { background: #000201; color: #cde; font-size: 3em; }
+    body { background: #000201; color: #cde; font-size: 3em;
+      text-align: center; }
     .bbox { display: flex; gap: .75em; margin: 0.5em;
       justify-content: center; flex-flow: column wrap; 
       min-height: 85vh; align-items: center; 
-      transition: ease-out .2s; } 
+      transition: ease-out .2s; position: fixed;
+      top: 0; left: 0; width: 100vw; 
+      transform: translate(0, -100vh); } 
     .btn { padding: .75em 1em; border: 2px solid #cde; 
       user-select: none; text-align: center; 
       border-radius: 0.2em; transition: ease-in-out .05s;
@@ -33,54 +36,82 @@ class ftws(http.server.BaseHTTPRequestHandler):
     input { font-size: 1em; width: 5em; }
   </style>
 </head><body>
-  <div id="apps" class="bbox"></div>
+  <div id="ftw_div_a" class="bbox"></div>
+  <div id="ftw_div_b" class="bbox"></div>
 </body>
 <script>
-  let apps = document.getElementById("apps");
+  // Gives me a nice way to point at the divs
+  let a = document.getElementById("ftw_div_a");
+  let b = document.getElementById("ftw_div_b");
+  let c = (n=0)=>[a,b][(state.length+n)%2];
+
+  // Nice formatting for labels
   let entitle = (t)=>` ${t}`.replaceAll("_"," ").split("")
     .map(x=>x==x.toLowerCase()?x:" "+x)
     .reduce((a,b)=>a.at(-1)==" "?a+b.toUpperCase():a+b)
     .replaceAll("  "," ").trim()
+
+  // Stores button info
   let state = [], api={};
+
+  // Pretty, but consistent, prng colors
   let colory = s=>`hsl(${s.split('').map(x=>x.charCodeAt(0))
     .reduce((a,b)=>2*a+b)%360},80%,20%)`;
-  let pop = ()=>{apps.innerHTML="";
-    if (state.length>0) {apps.innerHTML+='<div class="btn" '
+
+  // Makes the buttons
+  let pop = ()=>{c().innerHTML="";
+    if (state.length>0) {c().innerHTML+='<div class="btn" '
       + 'style="background: #222; margin-bottom: 1em;" '
       + 'onclick="state.pop(); swipe(true);">Back</div>'}
-    if (state.length<2) {apps.innerHTML+=
+    if (state.length<2) {c().innerHTML+=
       Object.keys(state.reduce((a,b)=>a[b],api))
       .map(x=>`<div onclick="goto('${x}')" class="btn" `
       + `style="background: ${colory(x)}">${entitle(x)}`
       + `</div>`).join("\\n")}
-    else if (state.length==2) {apps.innerHTML+=
+    else if (state.length==2) {c().innerHTML+=
       Object.entries(state.reduce((a,b)=>a[b],api).ui)
       .map(a=>`<div><label for="${a[0]}">${entitle(a[0])}: `
-      + `<input id="${a[0]}"${Object.entries(a[1])
-        .map(c=>" "+c[0]+"='"+c[1]+"'").join("")} />`
-      + `</label></div>`).join("\\n")
+      + `<`+ ("_tag" in a[1] ? a[1]._tag : "input")
+      + ` id="${a[0]}"${Object.entries(a[1])
+        .map(c=>" "+c[0]+"='"+c[1]+"'").join("")}>`
+      + ("_text" in a[1] ? a[1]._text : "")
+      + `</` + ("_tag" in a[1] ? a[1]._tag : "input")
+      + `></label></div>`).join("\\n")
       + '<div class="btn" style="background: #253; '
       + 'margin-top: 1em;" onclick="fire()">Go</div>'}
-    else {apps.innerHTML+=state.at(-1)
+    else {c().innerHTML+=state.at(-1)
       .map(x=>"<" + ("_tag" in x ? x._tag : "div") + " "
-        + Object.entries(x).filter(y=>!y[0].startsWith("_"))
-          .map(y=>y[0]+'="'+y[1]+'"').join(" ") + ">"
-        + ("_text" in x ? x._text : "") + "</" 
-        + ("_tag" in x ? x._tag : "div") + ">").join("\\n")}
+      + Object.entries(x).filter(y=>!y[0].startsWith("_"))
+        .map(y=>y[0]+'="'+y[1]+'"').join(" ") + ">"
+      + ("_text" in x ? x._text : "") + "</" 
+      + ("_tag" in x ? x._tag : "div") + ">").join("\\n")}
   }
+
+  // Do a function, then show the result
   let fire = ()=>fetch(`/do/${state[0]}/${state[1]}?ftw=true&`
     + Object.keys(api[state[0]][state[1]].ui)
       .map(x=>x+"="+encodeURIComponent(document
         .getElementById(x).value)).join("&"))
-    .then(r=>r.json()).then(r=>{state.push(r); swipe()})
+    .then(r=>r.json()).then(r=>{state.push(r); swipe()});
+
+  // Go to the next api layer
   let goto = (b)=>{ state.push(b); swipe(); }
+
+  // Animate buttons sliding in and out
   let swipe = (back=false)=>{
-    apps.style.transform=`translate(${back?0:"-100vw"}, ${back?"-100vh":0})`;
-    setTimeout(()=>{apps.innerHTML="";
-      apps.style.transform=`translate(${back?"-100vw":0}, ${back?0:"-100vh"})`;
-      setTimeout(()=>{pop();
-        apps.style.transform="translate(0, 0)";
-      }, 200);}, 200);}
+    c(1).style.transform=`translate(${back?0:"-100vw"}, `
+      + `${back?"-100vh":0})`;
+    c().style.transition="0s";
+    c().style.transform=`translate(${back?"-100vw":0}, `
+      + `${back?0:"-100vh"})`;
+    pop();
+    setTimeout(()=>{
+      c().style.transition="ease-out .2s";
+      c().style.transform="translate(0, 0)";
+    },10);
+  }
+
+  // Initialize the page
   fetch("/ftw/api").then(r=>r.json())
     .then(r=>{api=r; swipe();})
 </script>
@@ -100,16 +131,12 @@ class ftws(http.server.BaseHTTPRequestHandler):
       if (path[0]=="do" 
           and path[1] in apps 
           and path[2] in apps[path[1]]):
-          r=apps[path[1]][path[2]]["f"](**(
+          r=do(apps[path[1]][path[2]]["f"],
             {x:urllib.parse.unquote(y) for x,y in 
              [z.split("=") for z in 
                 s.path.split("?")[-1].split("&") 
-                if z != "ftw=true" and z !=""]} 
-            if s.path[-1]!="?" else {}))
-          if ("ftw=true" in s.path.lower() 
-              and (not isinstance(r, list) 
-              or any([not isinstance(x, dict) for x in r]))):
-            r = [{"style":"white-space:pre", "_text":r}]
+                if z !=""]} 
+             if "?" in s.path and s.path[-1]!="?" else {})
           s.ww(json.dumps(r, indent=2))
       else:
         s.ww("I'm a little teapot\n", code=418, 
@@ -120,8 +147,7 @@ class ftws(http.server.BaseHTTPRequestHandler):
     if (path[0]=="do" 
         and path[1] in apps 
         and path[2] in apps[path[1]]):
-      s.ww(json.dumps(apps[path[1]][path[2]]["f"](), 
-                      indent=2))
+      s.ww(json.dumps(str(s.rfile.read(int(s.headers.get("content-length")))), indent=2))
     else:
       s.ww("I'm a little teapot\n", code=418, 
            content="text/plain")
@@ -172,7 +198,8 @@ def ftfy(p="."):
         d = [] if d==None else d
         x["kwargs"] = dict(zip(x["args"][-len(d):],d))
         x["args"] = x["args"][:-len(d)]
-        x["ui"] = {a:{} for a in x["args"]}
+        x["ui"] = {"FTW Function":{"_tag":"span","_text":app+"."+meth}}
+        x["ui"].update({a:{} for a in x["args"]})
         x["ui"].update({a:{"value":b} 
                         for a,b in x["kwargs"].items()})
       else:
@@ -180,6 +207,15 @@ def ftfy(p="."):
       apps[app][meth] = x
       
   start(apps)
+
+def do(f, kwargs):
+  r = f(**{k:v for k,v in kwargs.items() 
+           if not k.lower().startswith("ftw")})
+  if ("ftw" in kwargs and kwargs["ftw"] 
+      and (not isinstance(r, list) 
+      or any([not isinstance(x, dict) for x in r]))):
+    r = [{"style":"white-space:pre", "_text":r}]
+  return r
 
 def start(appspec={}):
   apps=appspec
