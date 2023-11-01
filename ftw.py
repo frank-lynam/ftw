@@ -141,28 +141,30 @@ class ftws(http.server.BaseHTTPRequestHandler):
              if "?" in s.path and s.path[-1]!="?" else {})
           s.ww(json.dumps(r, indent=2))
       else:
-        s.ww("I'm a little teapot\n", code=418, 
-             content="text/plain")
+        s.ww(**teapot())
 
   def do_POST(s):
     path = s.path.split("/")[1:]
-    payload = json.loads(s.rfile.read(int(s.headers.get("content-length"))).decode()) if s.headers.get("content-length") else {}
+    payload = (json.loads(s.rfile.read(int(
+      s.headers.get("content-length"))).decode()) 
+      if s.headers.get("content-length") else {})
     if (path[0]=="do" 
         and path[1] in apps 
         and path[2] in apps[path[1]]):
-      s.ww(json.dumps(do(apps[path[1]][path[2]]["f"], payload), indent=2))
+      s.ww(json.dumps(do(apps[path[1]][path[2]]["f"], payload), 
+                      indent=2))
     elif (path[0]=="q" 
         and path[1] in apps 
         and path[2] in apps[path[1]]):
-      s.ww(json.dumps(q(apps[path[1]][path[2]]["f"], payload), indent=2))
+      s.ww(json.dumps(q(apps[path[1]][path[2]]["f"], payload), 
+                      indent=2))
     elif (path[0]=="r" 
         and path[1] in apps 
         and path[2] in apps[path[1]]
         and "id" in payload):
-      s.ww(json.dumps(r(payload["id"]), indent=2))
+      s.ww(**r(payload["id"]))
     else:
-      s.ww("I'm a little teapot\n", code=418, 
-           content="text/plain")
+      s.ww(**teapot())
 
 def ftw(low,__get_low=False):
   def omw(f):
@@ -242,12 +244,17 @@ def q(f, kwargs):
   return id
 
 def qw(f, kwargs, id):
-  tasks[id] = do(f, kwargs)
+  tasks[id]["result"] = {"txt": json.dumps(do(f, kwargs),
+                                           indent=2)}
 
 def r(id):
-  if id in tasks:
-    return tasks[id]
-  return "Still cookin'"
+  if id in tasks and "result" in tasks[id]:
+    return tasks[id]["result"]
+  return teapot()
+
+def teapot():
+  return {"txt":"I'm a little teapot\n", "code":418, 
+          "content":"text/plain"}
 
 def start(appspec={}):
   apps=appspec
