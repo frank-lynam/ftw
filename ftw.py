@@ -1,6 +1,8 @@
 import sys, os, http.server, json, urllib.parse
+import uuid, threading
 
 apps={}
+tasks={}
 
 class ftws(http.server.BaseHTTPRequestHandler):
   def index(self):
@@ -144,11 +146,20 @@ class ftws(http.server.BaseHTTPRequestHandler):
 
   def do_POST(s):
     path = s.path.split("/")[1:]
+    payload = json.loads(s.rfile.read(int(s.headers.get("content-length"))).decode()) if s.headers.get("content-length") else {}
     if (path[0]=="do" 
         and path[1] in apps 
         and path[2] in apps[path[1]]):
-      payload = json.loads(str(s.rfile.read(int(s.headers.get("content-length"))))) if s.headers.get("content-length") else {}
       s.ww(json.dumps(do(apps[path[1]][path[2]]["f"], payload), indent=2))
+    elif (path[0]=="q" 
+        and path[1] in apps 
+        and path[2] in apps[path[1]]):
+      s.ww(json.dumps(q(apps[path[1]][path[2]]["f"], payload), indent=2))
+    elif (path[0]=="r" 
+        and path[1] in apps 
+        and path[2] in apps[path[1]]
+        and "id" in payload):
+      s.ww(json.dumps(r(payload["id"]), indent=2))
     else:
       s.ww("I'm a little teapot\n", code=418, 
            content="text/plain")
@@ -219,7 +230,24 @@ def do(f, kwargs):
       and (not isinstance(r, list) 
       or any([not isinstance(x, dict) for x in r]))):
     r = [{"style":"white-space:pre", "_text":r}]
+  print(r)
   return r
+
+def q(f, kwargs):
+  id = str(uuid.uuid4())[:8]
+  tasks[id] = {"thread": threading.Thread(target=qw, 
+                  args=(f, kwargs, id)),
+               "name": f.__name__, "kwargs": kwargs}
+  tasks[id]["thread"].start()
+  return id
+
+def qw(f, kwargs, id):
+  tasks[id] = do(f, kwargs)
+
+def r(id):
+  if id in tasks:
+    return tasks[id]
+  return "Still cookin'"
 
 def start(appspec={}):
   apps=appspec
