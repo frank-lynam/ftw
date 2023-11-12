@@ -1,21 +1,28 @@
 import sys, os, http.server, json, urllib.parse
 import uuid, threading
 
+# Some globals because who cares, it's fine
 apps={}
 tasks={}
 
 class ftws(http.server.BaseHTTPRequestHandler):
-  def index(self):
-    return ""
+  # This is the webserver
 
   def ww(s, txt, code=200, content="application/json"):
+    # A simple little wrapper to make responses easier
+
     s.send_response(code)
     s.send_header("Content-type", content)
     s.end_headers()
     s.wfile.write(bytes(txt, "utf-8"))
 
   def do_GET(s):
-    if s.path=="/":      
+    # Handle gets
+
+    if s.path=="/":
+      # Personally, I *like* embedding code in code
+      #   You should be grateful I didn't base64 encode it
+
       s.ww("""
 <html><head><title>Frank's Terrible WebUI</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -92,6 +99,7 @@ class ftws(http.server.BaseHTTPRequestHandler):
   // Do a function, then show the result
   let fire = ()=>fetch(`/do/${state[0]}/${state[1]}?ftw=true&`
     + Object.keys(api[state[0]][state[1]].ui)
+      .filter(x=>!x.startsWith("FTW "))
       .map(x=>x+"="+encodeURIComponent(document
         .getElementById(x).value)).join("&"))
     .then(r=>r.json()).then(r=>{state.push(r); swipe()});
@@ -120,14 +128,20 @@ class ftws(http.server.BaseHTTPRequestHandler):
 </html>
 """, content="text/html")
     elif s.path=="/ftw/api":
+      # Gives my custom api schema
+
       s.ww(json.dumps(apps, default=lambda x : '', indent=2))
     elif s.path=="/favicon.svg":
+      # My totally sweet logo
+
       s.ww('<svg xmlns="http://www.w3.org/2000/svg"><polygon '
         + 'points="30,30 60,30 35,40 50,40 35,50 30,80 45,80 '
         + '42,55 35,50 55,50 47,55 45,80 60,80 55,40 62,70 '
         + '65,50 67,70 75,40 70,80 65,75 60,80 30,80" />'
         + '</svg>', content="image/svg+xml")
     else:
+      # Try to do api things if we can
+
       path = s.path.split("?")[0].split("/")[1:]
       payload = ({x:urllib.parse.unquote(y) for x,y in 
         [z.split("=") for z in 
@@ -136,7 +150,10 @@ class ftws(http.server.BaseHTTPRequestHandler):
       s.deal_with_it(path, payload)    
 
   def deal_with_it(s, path, payload):
-    print(path, payload)
+    # This figures out how to respond
+
+    print("Path: " + json.dumps(path))
+    print("Payload: " + json.dumps(payload))
     response = teapot()
     if (path[1] in apps and path[2] in apps[path[1]]):
       if (path[0]=="do"): 
@@ -147,10 +164,13 @@ class ftws(http.server.BaseHTTPRequestHandler):
           apps[path[1]][path[2]]["f"], payload), indent=2)}
       elif (path[0]=="r" and "id" in payload): 
         response = r(payload["id"])
-    print(response["txt"])
+
+    print("Response: " + json.dumps(response))
     s.ww(**response)
 
   def do_POST(s):
+    # This handles posts
+
     path = s.path.split("/")[1:]
     payload = (json.loads(s.rfile.read(int(
       s.headers.get("content-length"))).decode()) 
@@ -158,6 +178,9 @@ class ftws(http.server.BaseHTTPRequestHandler):
     s.deal_with_it(path, payload)
 
 def ftw(low,__get_low=False):
+  # This is my fancy wrapper that lets me do the
+  #   get low behavior to get kwargs
+
   def omw(f):
     def w(*args, **kwargs):
       if "__get_low" in kwargs:
@@ -167,6 +190,8 @@ def ftw(low,__get_low=False):
   return omw
 
 def ftfy(p="."):
+  # Reads python files to turn them into an api spec
+
   p += "" if p.endswith("/") else "/"
   sys.path.append(p)
 
@@ -184,15 +209,17 @@ def ftfy(p="."):
     if "@noftw" in t.lower():
       return None
     if "@ftw" in t.lower():
-      return {x.split("def ")[1].split("(")[0].strip():[None] 
-              for x in t.split("@ftw")[1:]}
+      return {x.split("def ")[1].split("(")[0].strip():
+              [None] for x in t.split("@ftw")[1:]}
     return {x.split("(")[0].strip():[] 
             for x in t.split("def ")[1:]}
 
+  # Oooh, spooky scary global variable!
   global apps
   apps = {f[:-3]:methods(f) for f in files}
   apps = {k:v for k,v in apps.items() if v!=None}
 
+  # Populate the api spec with the stuff I want
   for app in apps.keys():
     mod=__import__(app)
     for meth in apps[app].keys():
@@ -212,22 +239,28 @@ def ftfy(p="."):
         x["ui"] = x["f"](__get_low=True)
       apps[app][meth] = x
       
+  # Gives nice Ctrl+C behavior
   try:
     start(apps)
   except KeyboardInterrupt:
     print("\rBuh-bye!")
 
 def do(f, kwargs):
+  # Actually run functions, then wrap their result
+  #   in a component
+
   r = f(**{k:v for k,v in kwargs.items() 
            if not k.lower().startswith("ftw")})
   if ("ftw" in kwargs and kwargs["ftw"] 
       and (not isinstance(r, list) 
       or any([not isinstance(x, dict) for x in r]))):
     r = [{"style":"white-space:pre", "_text":r}]
-  print(r)
+  print("Task result: " + json.dumps(r))
   return r
 
 def q(f, kwargs):
+  # Spin off tasks in a thread and return a ref id
+
   id = str(uuid.uuid4())[:8]
   tasks[id] = {"thread": threading.Thread(target=qw, 
                   args=(f, kwargs, id)),
@@ -236,23 +269,34 @@ def q(f, kwargs):
   return id
 
 def qw(f, kwargs, id):
+  # A wrapper to turn threads in responses
+
   tasks[id]["result"] = {"txt": json.dumps(do(f, kwargs),
                                            indent=2)}
 
 def r(id):
+  # Tries to return results if available
+
   if id in tasks and "result" in tasks[id]:
     return tasks[id]["result"]
   return teapot()
 
 def teapot():
+  # For when I don't know what to do
+
   return {"txt":"I'm a little teapot\n", "code":418, 
           "content":"text/plain"}
 
 def start(appspec={}):
+  # Starts the server
+
   apps=appspec
   print(f"Frank's Terrible WebUI found {len(apps.keys())} "
     + "apps.\nPress Ctrl+C to exit.")
   http.server.HTTPServer(('', 8000), ftws).serve_forever()
 
 if __name__=="__main__":
+  # Starts a server based on command line args
+  #   if any are given
+
   ftfy(sys.argv[1]) if len(sys.argv) > 1 else ftfy()
