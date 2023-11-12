@@ -129,42 +129,33 @@ class ftws(http.server.BaseHTTPRequestHandler):
         + '</svg>', content="image/svg+xml")
     else:
       path = s.path.split("?")[0].split("/")[1:]
-      print(s.path)
-      if (path[0]=="do" 
-          and path[1] in apps 
-          and path[2] in apps[path[1]]):
-          r=do(apps[path[1]][path[2]]["f"],
-            {x:urllib.parse.unquote(y) for x,y in 
-             [z.split("=") for z in 
-                s.path.split("?")[-1].split("&") 
-                if z !=""]} 
-             if "?" in s.path and s.path[-1]!="?" else {})
-          s.ww(json.dumps(r, indent=2))
-      else:
-        s.ww(**teapot())
+      payload = ({x:urllib.parse.unquote(y) for x,y in 
+        [z.split("=") for z in 
+          s.path.split("?")[-1].split("&") if z !=""]} 
+        if "?" in s.path and s.path[-1]!="?" else {})
+      s.deal_with_it(path, payload)    
+
+  def deal_with_it(s, path, payload):
+    print(path, payload)
+    response = teapot()
+    if (path[1] in apps and path[2] in apps[path[1]]):
+      if (path[0]=="do"): 
+        response = {"txt": json.dumps(do(
+          apps[path[1]][path[2]]["f"], payload), indent=2)}
+      elif (path[0]=="q"): 
+        response = {"txt": json.dumps(q(
+          apps[path[1]][path[2]]["f"], payload), indent=2)}
+      elif (path[0]=="r" and "id" in payload): 
+        response = r(payload["id"])
+    print(response["txt"])
+    s.ww(**response)
 
   def do_POST(s):
     path = s.path.split("/")[1:]
     payload = (json.loads(s.rfile.read(int(
       s.headers.get("content-length"))).decode()) 
       if s.headers.get("content-length") else {})
-    if (path[0]=="do" 
-        and path[1] in apps 
-        and path[2] in apps[path[1]]):
-      s.ww(json.dumps(do(apps[path[1]][path[2]]["f"], payload), 
-                      indent=2))
-    elif (path[0]=="q" 
-        and path[1] in apps 
-        and path[2] in apps[path[1]]):
-      s.ww(json.dumps(q(apps[path[1]][path[2]]["f"], payload), 
-                      indent=2))
-    elif (path[0]=="r" 
-        and path[1] in apps 
-        and path[2] in apps[path[1]]
-        and "id" in payload):
-      s.ww(**r(payload["id"]))
-    else:
-      s.ww(**teapot())
+    s.deal_with_it(path, payload)
 
 def ftw(low,__get_low=False):
   def omw(f):
@@ -212,7 +203,8 @@ def ftfy(p="."):
         d = [] if d==None else d
         x["kwargs"] = dict(zip(x["args"][-len(d):],d))
         x["args"] = x["args"][:-len(d)]
-        x["ui"] = {"FTW Function":{"_tag":"span","_text":app+"."+meth}}
+        x["ui"] = {"FTW Function":{"_tag":"span",
+                                   "_text":app+"."+meth}}
         x["ui"].update({a:{} for a in x["args"]})
         x["ui"].update({a:{"value":b} 
                         for a,b in x["kwargs"].items()})
