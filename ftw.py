@@ -69,7 +69,9 @@ class ftws(http.server.BaseHTTPRequestHandler):
 
   // Makes the buttons
   let pop = ()=>{c().innerHTML="";
-    if (state.length>0) {c().innerHTML+='<div class="btn" '
+    if (state.length==0) {c().innerHTML+='<div '
+      + 'style="margin-bottom: 1em;"></div>'}
+    else {c().innerHTML+='<div class="btn" '
       + 'style="background: #222; margin-bottom: 1em;" '
       + 'onclick="state.pop(); swipe(true);">Back</div>'}
     if (state.length<2) {c().innerHTML+=
