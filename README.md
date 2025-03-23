@@ -1,6 +1,6 @@
 # Frank's Terrible WebUI
 
-A thing that turns python files into websites super easy. I made it on my phone.
+A thing that turns python files into websites super easy. I made it on my phone just to see if I could.
 
 ## Use
 
